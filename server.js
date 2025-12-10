@@ -1,10 +1,18 @@
 const express = require('express');
+const cors = require('cors');
 const { connectDB, sequelize } = require('./config/db');
 const userRoutes = require('./routes/userRoutes');
 const logger = require('./config/logger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Enable CORS for mobile app
+app.use(cors({
+  origin: '*', // In production, specify your mobile app's origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 app.use(express.json());
 

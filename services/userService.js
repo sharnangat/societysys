@@ -86,20 +86,44 @@ const isValidEmail = (email) => {
   return emailRegex.test(email);
 };
 
+// Validate phone number format (basic validation)
+const isValidPhone = (phone) => {
+  if (!phone) return true; // Phone is optional
+  const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+  return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 10;
+};
+
 const createUser = async (data) => {
-  // Validate email format
+  // Validate required fields
   if (!data.email || !isValidEmail(data.email)) {
     throw new Error('Valid email address is required');
   }
 
+  if (!data.password || data.password.length < 6) {
+    throw new Error('Password is required and must be at least 6 characters long');
+  }
+
+  // Validate optional fields if provided
+  if (data.username && (data.username.length < 3 || data.username.length > 50)) {
+    throw new Error('Username must be between 3 and 50 characters');
+  }
+
+  if (data.phone && !isValidPhone(data.phone)) {
+    throw new Error('Invalid phone number format');
+  }
+
+  if (data.first_name && data.first_name.length > 100) {
+    throw new Error('First name must be 100 characters or less');
+  }
+
+  if (data.last_name && data.last_name.length > 100) {
+    throw new Error('Last name must be 100 characters or less');
+  }
+
+  // Check if user already exists
   const existingUser = await userRepository.findByEmail(data.email);
   if (existingUser) {
     throw new Error('User already exists with this email');
-  }
-
-  // Validate password
-  if (!data.password || data.password.length < 6) {
-    throw new Error('Password is required and must be at least 6 characters long');
   }
 
   // Hash password before storing
@@ -110,23 +134,40 @@ const createUser = async (data) => {
   let sanitizedData = sanitizeDateFields(data);
   sanitizedData = sanitizeUUIDFields(sanitizedData);
   
-  // Remove 'id' field if present (let database generate it)
-  delete sanitizedData.id;
-  // Remove plain password, use hashed version
-  delete sanitizedData.password;
-  sanitizedData.password_hash = password_hash;
-  
+  // Prepare user data - include all allowed model fields
+  const userData = {
+    // Required fields
+    email: sanitizedData.email.trim().toLowerCase(),
+    password_hash: password_hash,
+    
+    // Optional user fields
+    username: sanitizedData.username ? sanitizedData.username.trim() : `user_${Date.now()}`,
+    first_name: sanitizedData.first_name ? sanitizedData.first_name.trim() : null,
+    last_name: sanitizedData.last_name ? sanitizedData.last_name.trim() : null,
+    phone: sanitizedData.phone ? sanitizedData.phone.trim() : null,
+    
+    // Status fields (can be set during registration)
+    status: sanitizedData.status || 'pending_verification',
+    
+    // Email verification fields (can be set but defaults to false)
+    email_verified: sanitizedData.email_verified === true ? true : false,
+    phone_verified: sanitizedData.phone_verified === true ? true : false,
+    
+    // Created by (if provided and valid UUID)
+    created_by: sanitizedData.created_by || null,
+  };
+
   // Generate email verification token
   const verificationToken = generateVerificationToken();
   const verificationExpires = new Date();
   verificationExpires.setHours(verificationExpires.getHours() + 24); // 24 hours from now
   
-  // Add verification token and expiration to user data
-  sanitizedData.email_verification_token = verificationToken;
-  sanitizedData.email_verification_expires = verificationExpires;
+  // Add verification token and expiration
+  userData.email_verification_token = verificationToken;
+  userData.email_verification_expires = verificationExpires;
   
   // Create user
-  const user = await userRepository.createUser(sanitizedData);
+  const user = await userRepository.createUser(userData);
   
   // Send registration email (don't wait for it, send asynchronously)
   emailService.sendRegistrationEmail(user, verificationToken).catch((error) => {

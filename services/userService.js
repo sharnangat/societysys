@@ -1,6 +1,12 @@
 const userRepository = require('../repository/userRepository');
 const logger = require('../config/logger');
 
+// Helper function to validate UUID format
+const isValidUUID = (uuid) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 // Helper function to sanitize date fields
 const sanitizeDateFields = (data) => {
   const dateFields = [
@@ -41,13 +47,40 @@ const sanitizeDateFields = (data) => {
   return sanitized;
 };
 
+// Helper function to sanitize UUID fields
+const sanitizeUUIDFields = (data) => {
+  const uuidFields = ['created_by', 'id'];
+  
+  const sanitized = { ...data };
+  
+  uuidFields.forEach((field) => {
+    if (sanitized[field] !== undefined && sanitized[field] !== null) {
+      // Convert to string if not already
+      const uuidValue = String(sanitized[field]).trim();
+      
+      // Remove empty strings or invalid UUIDs
+      if (uuidValue === '' || !isValidUUID(uuidValue)) {
+        logger.warn(`Removing invalid UUID field: ${field}`, { value: sanitized[field] });
+        delete sanitized[field];
+      } else {
+        sanitized[field] = uuidValue;
+      }
+    }
+  });
+  
+  return sanitized;
+};
+
 const createUser = async (data) => {
   const existingUser = await userRepository.findByEmail(data.email);
   if (existingUser) {
     throw new Error('User already exists with this email');
   }
-  // Sanitize date fields before creating user
-  const sanitizedData = sanitizeDateFields(data);
+  // Sanitize date and UUID fields before creating user
+  let sanitizedData = sanitizeDateFields(data);
+  sanitizedData = sanitizeUUIDFields(sanitizedData);
+  // Remove 'id' field if present (let database generate it)
+  delete sanitizedData.id;
   return userRepository.createUser(sanitizedData);
 };
 const getUsers = async () => userRepository.getUsers();
@@ -57,8 +90,11 @@ const getUserById = async (id) => {
   return user1;
 };
 const updateUser = async (id, data) => {
-  // Sanitize date fields before updating user
-  const sanitizedData = sanitizeDateFields(data);
+  // Sanitize date and UUID fields before updating user
+  let sanitizedData = sanitizeDateFields(data);
+  sanitizedData = sanitizeUUIDFields(sanitizedData);
+  // Don't allow updating the id field
+  delete sanitizedData.id;
   const updatedUser = await userRepository.updateUser(id, sanitizedData);
   if (!updatedUser) throw new Error('User not found');
   return updatedUser;

@@ -63,4 +63,35 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { createUser, getUsers, getUserById, updateUser, deleteUser };
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    // Get IP address from request
+    const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+
+    logger.info('Login attempt', { email });
+    const result = await userService.loginUser(email, password, ipAddress);
+    logger.info('User logged in successfully', { email, userId: result.user.id });
+    res.status(200).json(result);
+  } catch (err) {
+    logger.warn('Login failed', { error: err.message, email: req.body.email });
+    
+    // Determine appropriate status code
+    let status = 401;
+    if (err.message.includes('locked')) {
+      status = 423; // 423 Locked
+    } else if (err.message.includes('Invalid email or password')) {
+      status = 401; // Unauthorized
+    }
+
+    res.status(status).json({ message: err.message });
+  }
+};
+
+module.exports = { createUser, getUsers, getUserById, updateUser, deleteUser, loginUser };

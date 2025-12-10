@@ -1,5 +1,9 @@
+const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const userRepository = require('../repository/userRepository');
 const logger = require('../config/logger');
+const emailService = require('./emailService');
+const { generateToken } = require('../config/jwt');
 
 // Helper function to validate UUID format
 const isValidUUID = (uuid) => {
@@ -71,17 +75,69 @@ const sanitizeUUIDFields = (data) => {
   return sanitized;
 };
 
+// Generate email verification token
+const generateVerificationToken = () => {
+  return crypto.randomBytes(32).toString('hex');
+};
+
+// Validate email format
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 const createUser = async (data) => {
+  // Validate email format
+  if (!data.email || !isValidEmail(data.email)) {
+    throw new Error('Valid email address is required');
+  }
+
   const existingUser = await userRepository.findByEmail(data.email);
   if (existingUser) {
     throw new Error('User already exists with this email');
   }
+
+  // Validate password
+  if (!data.password || data.password.length < 6) {
+    throw new Error('Password is required and must be at least 6 characters long');
+  }
+
+  // Hash password before storing
+  const saltRounds = 10;
+  const password_hash = await bcrypt.hash(data.password, saltRounds);
+
   // Sanitize date and UUID fields before creating user
   let sanitizedData = sanitizeDateFields(data);
   sanitizedData = sanitizeUUIDFields(sanitizedData);
+  
   // Remove 'id' field if present (let database generate it)
   delete sanitizedData.id;
-  return userRepository.createUser(sanitizedData);
+  // Remove plain password, use hashed version
+  delete sanitizedData.password;
+  sanitizedData.password_hash = password_hash;
+  
+  // Generate email verification token
+  const verificationToken = generateVerificationToken();
+  const verificationExpires = new Date();
+  verificationExpires.setHours(verificationExpires.getHours() + 24); // 24 hours from now
+  
+  // Add verification token and expiration to user data
+  sanitizedData.email_verification_token = verificationToken;
+  sanitizedData.email_verification_expires = verificationExpires;
+  
+  // Create user
+  const user = await userRepository.createUser(sanitizedData);
+  
+  // Send registration email (don't wait for it, send asynchronously)
+  emailService.sendRegistrationEmail(user, verificationToken).catch((error) => {
+    logger.error('Failed to send registration email after user creation', {
+      error: error.message,
+      userId: user.id,
+      email: user.email,
+    });
+  });
+  
+  return user;
 };
 const getUsers = async () => userRepository.getUsers();
 const getUserById = async (id) => {
@@ -105,4 +161,106 @@ const deleteUser = async (id) => {
   return { message: 'User deleted successfully' };
 };
 
-module.exports = { createUser, getUsers, getUserById, updateUser, deleteUser };
+const loginUser = async (email, password, ipAddress) => {
+  // Find user by email
+  const user = await userRepository.findByEmail(email);
+  
+  if (!user) {
+    logger.warn('Login attempt with non-existent email', { email });
+    throw new Error('Invalid email or password');
+  }
+
+  // Check if account is locked
+  if (user.account_locked_until && new Date(user.account_locked_until) > new Date()) {
+    logger.warn('Login attempt on locked account', {
+      userId: user.id,
+      email: user.email,
+      lockedUntil: user.account_locked_until,
+    });
+    throw new Error('Account is locked. Please try again later.');
+  }
+
+  // Verify password
+  const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+  
+  if (!isPasswordValid) {
+    // Increment failed login attempts
+    const failedAttempts = (user.failed_login_attempts || 0) + 1;
+    const maxAttempts = 5;
+    const lockDurationHours = 1;
+
+    let updateData = {
+      failed_login_attempts: failedAttempts,
+    };
+
+    // Lock account after max attempts
+    if (failedAttempts >= maxAttempts) {
+      const lockUntil = new Date();
+      lockUntil.setHours(lockUntil.getHours() + lockDurationHours);
+      updateData.account_locked_until = lockUntil;
+      
+      logger.warn('Account locked due to too many failed login attempts', {
+        userId: user.id,
+        email: user.email,
+        failedAttempts,
+        lockedUntil: lockUntil,
+      });
+    }
+
+    await userRepository.updateUser(user.id, updateData);
+
+    logger.warn('Invalid login attempt', {
+      userId: user.id,
+      email: user.email,
+      failedAttempts,
+      ipAddress,
+    });
+
+    throw new Error('Invalid email or password');
+  }
+
+  // Successful login - reset failed attempts and update last login
+  const updateData = {
+    failed_login_attempts: 0,
+    account_locked_until: null,
+    last_login: new Date(),
+    last_login_ip: ipAddress,
+  };
+
+  await userRepository.updateUser(user.id, updateData);
+
+  // Generate JWT token
+  const tokenPayload = {
+    userId: user.id,
+    email: user.email,
+  };
+
+  const token = generateToken(tokenPayload);
+
+  logger.info('User logged in successfully', {
+    userId: user.id,
+    email: user.email,
+    ipAddress,
+  });
+
+  // Return user data without sensitive information
+  const userResponse = {
+    id: user.id,
+    email: user.email,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    phone: user.phone,
+    status: user.status,
+    email_verified: user.email_verified,
+    phone_verified: user.phone_verified,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+  };
+
+  return {
+    user: userResponse,
+    token,
+  };
+};
+
+module.exports = { createUser, getUsers, getUserById, updateUser, deleteUser, loginUser };

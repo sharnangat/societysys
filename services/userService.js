@@ -94,13 +94,35 @@ const isValidPhone = (phone) => {
 };
 
 const createUser = async (data) => {
+  // Log received data for debugging (including password)
+  logger.info('createUser - Received data keys', { 
+    keys: Object.keys(data),
+    hasPassword: !!data.password,
+    passwordType: typeof data.password,
+    passwordLength: data.password ? data.password.length : 0,
+    passwordValue: data.password, // DEBUG: Print actual password
+    fullData: data // DEBUG: Print full data including password
+  });
+
   // Validate required fields
   if (!data.email || !isValidEmail(data.email)) {
     throw new Error('Valid email address is required');
   }
 
-  if (!data.password || data.password.length < 6) {
-    throw new Error('Password is required and must be at least 6 characters long');
+  // Check if password exists and is not empty
+  if (!data.password) {
+    logger.warn('createUser - Password missing', { receivedData: Object.keys(data) });
+    throw new Error('Password is required');
+  }
+  
+  if (typeof data.password !== 'string') {
+    logger.warn('createUser - Password is not a string', { passwordType: typeof data.password });
+    throw new Error('Password must be a string');
+  }
+  
+  if (data.password.trim().length === 0) {
+    logger.warn('createUser - Password is empty or whitespace');
+    throw new Error('Password cannot be empty');
   }
 
   // Validate optional fields if provided
@@ -128,7 +150,15 @@ const createUser = async (data) => {
 
   // Hash password before storing
   const saltRounds = 10;
+  logger.info('Hashing password before storing', { 
+    passwordLength: data.password.length,
+    saltRounds 
+  });
   const password_hash = await bcrypt.hash(data.password, saltRounds);
+  logger.info('Password hashed successfully', { 
+    hashLength: password_hash.length,
+    hashPrefix: password_hash.substring(0, 20) + '...'
+  });
 
   // Sanitize date and UUID fields before creating user
   let sanitizedData = sanitizeDateFields(data);
@@ -221,8 +251,23 @@ const loginUser = async (email, password, ipAddress) => {
     throw new Error('Account is locked. Please try again later.');
   }
 
-  // Verify password
+  // Verify password using bcrypt.compare
+  logger.info('Verifying password', { 
+    email: user.email,
+    hasPasswordHash: !!user.password_hash,
+    passwordHashLength: user.password_hash ? user.password_hash.length : 0
+  });
+  
+  if (!user.password_hash) {
+    logger.error('User has no password hash stored', { userId: user.id, email: user.email });
+    throw new Error('Invalid email or password');
+  }
+  
   const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+  logger.info('Password verification result', { 
+    email: user.email,
+    isValid: isPasswordValid
+  });
   
   if (!isPasswordValid) {
     // Increment failed login attempts

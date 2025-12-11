@@ -16,11 +16,17 @@ app.use(cors({
 
 app.use(express.json());
 
-// Request logging middleware
+// Request logging middleware - log all received data (including password for debugging)
 app.use((req, res, next) => {
   logger.info(`${req.method} ${req.path}`, {
     ip: req.ip,
     userAgent: req.get('user-agent'),
+    headers: req.headers,
+    query: req.query,
+    params: req.params,
+    body: req.body, // DEBUG: Print full body including password
+    contentType: req.get('content-type'),
+    passwordValue: req.body?.password, // DEBUG: Print actual password
   });
   next();
 });

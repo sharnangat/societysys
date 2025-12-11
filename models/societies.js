@@ -6,6 +6,7 @@ const Society = sequelize.define(
   {
     id: {
       type: DataTypes.UUID,
+      primaryKey: true,
       defaultValue: DataTypes.UUIDV4,
     },
     name: {
@@ -18,8 +19,7 @@ const Society = sequelize.define(
     },
     registration_number: {
       type: DataTypes.STRING(100),
-      allowNull: false,
-      primaryKey: true,
+      allowNull: true,
       unique: true,
     },
     registration_date: {

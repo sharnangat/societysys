@@ -11,7 +11,8 @@
     "test-registration": "node scripts/testRegistrationAPI.js",
     "test-login": "node scripts/testLoginAPI.js",
     "test-company-config": "node scripts/testCompanyConfigAPI.js",
-    "test-societies": "node scripts/testSocietiesAPI.js"
+    "test-societies": "node scripts/testSocietiesAPI.js",
+    "test-members": "node scripts/testMembersAPI.js"
   },
   "keywords": [],
   "author": "",

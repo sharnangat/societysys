@@ -4,6 +4,7 @@ const { connectDB, sequelize } = require('./config/db');
 const userRoutes = require('./routes/userRoutes');
 const companyConfigRoutes = require('./routes/companyConfigRoutes');
 const societiesRoutes = require('./routes/societiesRoutes');
+const membersRoutes = require('./routes/membersRoutes');
 const logger = require('./config/logger');
 
 const app = express();
@@ -37,6 +38,7 @@ app.use((req, res, next) => {
 app.use('/api', userRoutes);
 app.use('/api', companyConfigRoutes);
 app.use('/api', societiesRoutes);
+app.use('/api', membersRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

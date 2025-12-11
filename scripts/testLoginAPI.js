@@ -3,9 +3,10 @@ const http = require('http');
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000/api';
 
-// Sample login request data
+// Sample login request data - can use either email or phone
 const loginData = {
-  email: 'test.user@example.com',
+  email: 'test.user@example.com', // Use email OR phone
+  // phone: '+911234567890', // Alternative: use phone instead of email
   password: 'testpassword123',
 };
 
@@ -88,9 +89,10 @@ loginUser(loginData)
     } else {
       console.log('\n✗ Login failed:', result.error);
       console.log('\nCommon issues:');
-      console.log('- Email or password is incorrect');
+      console.log('- Email/phone or password is incorrect');
       console.log('- User does not exist');
       console.log('- Account may be locked');
+      console.log('\nNote: You can login with either email or phone number');
     }
     process.exit(result.success ? 0 : 1);
   })

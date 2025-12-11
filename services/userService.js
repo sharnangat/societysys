@@ -232,13 +232,22 @@ const deleteUser = async (id) => {
   return { message: 'User deleted successfully' };
 };
 
-const loginUser = async (email, password, ipAddress) => {
-  // Find user by email
-  const user = await userRepository.findByEmail(email);
+// Helper function to check if identifier is email or phone
+const isEmail = (identifier) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(identifier);
+};
+
+const loginUser = async (identifier, password, ipAddress) => {
+  // Find user by email or phone
+  const user = await userRepository.findByEmailOrPhone(identifier);
   
   if (!user) {
-    logger.warn('Login attempt with non-existent email', { email });
-    throw new Error('Invalid email or password');
+    logger.warn('Login attempt with non-existent identifier', { 
+      identifier, 
+      isEmail: isEmail(identifier) 
+    });
+    throw new Error('Invalid email/phone or password');
   }
 
   // Check if account is locked
@@ -246,6 +255,7 @@ const loginUser = async (email, password, ipAddress) => {
     logger.warn('Login attempt on locked account', {
       userId: user.id,
       email: user.email,
+      phone: user.phone,
       lockedUntil: user.account_locked_until,
     });
     throw new Error('Account is locked. Please try again later.');
@@ -259,8 +269,8 @@ const loginUser = async (email, password, ipAddress) => {
   });
   
   if (!user.password_hash) {
-    logger.error('User has no password hash stored', { userId: user.id, email: user.email });
-    throw new Error('Invalid email or password');
+    logger.error('User has no password hash stored', { userId: user.id, email: user.email, phone: user.phone });
+    throw new Error('Invalid email/phone or password');
   }
   
   const isPasswordValid = await bcrypt.compare(password, user.password_hash);
@@ -298,11 +308,12 @@ const loginUser = async (email, password, ipAddress) => {
     logger.warn('Invalid login attempt', {
       userId: user.id,
       email: user.email,
+      phone: user.phone,
       failedAttempts,
       ipAddress,
     });
 
-    throw new Error('Invalid email or password');
+    throw new Error('Invalid email/phone or password');
   }
 
   // Successful login - reset failed attempts and update last login

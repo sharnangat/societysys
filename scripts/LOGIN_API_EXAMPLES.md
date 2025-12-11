@@ -9,10 +9,12 @@ Content-Type: application/json
 
 ## Required Fields
 
-- `email` (string, valid email format)
+- `email` OR `phone` (string) - Either email or phone number
 - `password` (string, plain text password)
 
-## Basic Login (cURL - Linux/Mac)
+**Note:** You can login with either email or phone number. If both are provided, email takes priority.
+
+## Basic Login with Email (cURL - Linux/Mac)
 
 ```bash
 curl -X POST http://localhost:3000/api/login \
@@ -23,11 +25,36 @@ curl -X POST http://localhost:3000/api/login \
   }'
 ```
 
-## PowerShell (Windows)
+## Login with Phone Number (cURL - Linux/Mac)
+
+```bash
+curl -X POST http://localhost:3000/api/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+911234567890",
+    "password": "testpassword123"
+  }'
+```
+
+## PowerShell - Login with Email (Windows)
 
 ```powershell
 $body = @{
     email = "test.user@example.com"
+    password = "testpassword123"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:3000/api/login" `
+    -Method Post `
+    -Body $body `
+    -ContentType "application/json"
+```
+
+## PowerShell - Login with Phone (Windows)
+
+```powershell
+$body = @{
+    phone = "+911234567890"
     password = "testpassword123"
 } | ConvertTo-Json
 
@@ -100,7 +127,7 @@ curl -X GET http://localhost:3000/api/users \
 **401 Unauthorized (Invalid credentials):**
 ```json
 {
-  "message": "Invalid email or password"
+  "message": "Invalid email/phone or password"
 }
 ```
 
@@ -114,18 +141,39 @@ curl -X GET http://localhost:3000/api/users \
 **400 Bad Request (Missing fields):**
 ```json
 {
-  "message": "Email and password are required"
+  "message": "Email or phone and password are required"
 }
 ```
 
 ## Password Verification
 
 The login API:
-1. Finds user by email
-2. Retrieves `password_hash` from database
-3. Uses `bcrypt.compare()` to verify the password
-4. If match: Returns user data and JWT token
-5. If no match: Increments failed login attempts, locks after 5 attempts
+1. Accepts either email or phone number as login identifier
+2. Finds user by email or phone (tries email first, then phone)
+3. Retrieves `password_hash` from database
+4. Uses `bcrypt.compare()` to verify the password
+5. If match: Returns user data and JWT token
+6. If no match: Increments failed login attempts, locks after 5 attempts
+
+## Login Methods
+
+### Method 1: Login with Email
+```json
+{
+  "email": "user@example.com",
+  "password": "yourpassword"
+}
+```
+
+### Method 2: Login with Phone
+```json
+{
+  "phone": "+911234567890",
+  "password": "yourpassword"
+}
+```
+
+**Note:** If both `email` and `phone` are provided, `email` takes priority.
 
 ## Testing
 

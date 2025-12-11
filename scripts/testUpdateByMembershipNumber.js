@@ -84,7 +84,8 @@ async function testUpdateByMembershipNumber() {
     };
 
     console.log(`Updating member with membership_number: ${membershipNumber}`);
-    const result = await makeRequest('PUT', `/members/membership/${membershipNumber}`, updateData);
+    // Now we can use /members/:id route - it will detect if it's UUID or membership number
+    const result = await makeRequest('PUT', `/members/${membershipNumber}`, updateData);
     
     if (result.success) {
       console.log('\n✓ Update by membership number test PASSED!');

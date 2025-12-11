@@ -118,20 +118,41 @@ const getMembersByUserId = async (req, res) => {
   }
 };
 
+// Helper function to check if a string is a UUID
+const isUUID = (str) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
 const updateMember = async (req, res) => {
   try {
+    const identifier = req.params.id;
     logger.info('Updating member - Received data', {
-      id: req.params.id,
+      identifier,
       body: req.body,
       params: req.params,
     });
-    const member = await membersService.updateMember(req.params.id, req.body);
-    logger.info('Member updated successfully', { id: member.id });
+
+    let member;
+    // Check if identifier is a UUID or membership number
+    if (isUUID(identifier)) {
+      // Update by ID (UUID)
+      member = await membersService.updateMember(identifier, req.body);
+      logger.info('Member updated successfully by ID', { id: member.id });
+    } else {
+      // Update by membership number
+      member = await membersService.updateMemberByMembershipNumber(identifier, req.body);
+      logger.info('Member updated successfully by membership number', { 
+        membership_number: identifier, 
+        id: member.id 
+      });
+    }
+    
     res.json(member);
   } catch (err) {
     logger.warn('Failed to update member', {
       error: err.message,
-      id: req.params.id,
+      identifier: req.params.id,
       receivedData: req.body,
     });
     const status = err.message === 'Member not found' ? 404 : err.message.includes('already exists') ? 409 : 400;

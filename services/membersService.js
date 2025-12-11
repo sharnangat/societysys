@@ -470,6 +470,7 @@ module.exports = {
   getActiveMembersBySocietyId,
   getMembersByUserId,
   updateMember,
+  updateMemberByMembershipNumber,
   deleteMember,
 };
 

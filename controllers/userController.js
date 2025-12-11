@@ -161,31 +161,42 @@ const deleteUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, phone, password } = req.body;
+
+    // Determine login identifier (email takes priority if both provided)
+    const identifier = email || phone;
 
     // Log all received data (mask password)
     logger.info('Login attempt - Received data', { 
       email, 
+      phone,
+      identifier,
       password: '***MASKED***',
-      allBodyData: { ...req.body, password: password }
+      allBodyData: { ...req.body, password: '***MASKED***' }
     });
 
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+    // Validate input - either email or phone is required
+    if (!identifier || !password) {
+      return res.status(400).json({ message: 'Email or phone and password are required' });
     }
 
     // Get IP address from request
     const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
 
-    const result = await userService.loginUser(email, password, ipAddress);
-    logger.info('User logged in successfully', { email, userId: result.user.id });
+    const result = await userService.loginUser(identifier, password, ipAddress);
+    logger.info('User logged in successfully', { 
+      identifier, 
+      email: result.user.email,
+      phone: result.user.phone,
+      userId: result.user.id 
+    });
     res.status(200).json(result);
   } catch (err) {
     // Log all received data on error (mask password)
     logger.warn('Login failed', { 
       error: err.message, 
       email: req.body.email,
+      phone: req.body.phone,
       receivedData: { ...req.body, password: '***MASKED***' }
     });
     
@@ -193,7 +204,7 @@ const loginUser = async (req, res) => {
     let status = 401;
     if (err.message.includes('locked')) {
       status = 423; // 423 Locked
-    } else if (err.message.includes('Invalid email or password')) {
+    } else if (err.message.includes('Invalid email/phone or password') || err.message.includes('Invalid email or password')) {
       status = 401; // Unauthorized
     }
 

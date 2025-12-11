@@ -9,7 +9,8 @@
     "insert-mock-data-api": "node scripts/insertMockDataViaAPI.js",
     "insert-society-users": "node scripts/insertIntoSocietyUsers.js",
     "test-registration": "node scripts/testRegistrationAPI.js",
-    "test-login": "node scripts/testLoginAPI.js"
+    "test-login": "node scripts/testLoginAPI.js",
+    "test-company-config": "node scripts/testCompanyConfigAPI.js"
   },
   "keywords": [],
   "author": "",

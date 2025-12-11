@@ -31,7 +31,7 @@ node scripts/insertMockDataViaAPI.js
 
 **Prerequisites:**
 - Server must be running on port 3000
-- API endpoint `/api/users` must be accessible
+- API endpoint `/api/user/register` must be accessible
 
 **Advantages:**
 - Tests the actual API endpoints

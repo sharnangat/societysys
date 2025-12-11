@@ -18,12 +18,12 @@ $headers = @{
 }
 
 Write-Host "Sending registration request..."
-Write-Host "URL: http://localhost:3000/api/users"
+Write-Host "URL: http://localhost:3000/api/user/register"
 Write-Host "Body: $body"
 Write-Host ""
 
 try {
-    $response = Invoke-RestMethod -Uri "http://localhost:3000/api/users" `
+    $response = Invoke-RestMethod -Uri "http://localhost:3000/api/user/register" `
         -Method Post `
         -Body $body `
         -Headers $headers `

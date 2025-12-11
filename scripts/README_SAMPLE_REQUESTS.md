@@ -13,7 +13,7 @@ The backend will automatically hash the password and store it as `password_hash`
 ## API Endpoint
 
 ```
-POST http://localhost:3000/api/users
+POST http://localhost:3000/api/user/register
 Content-Type: application/json
 ```
 
@@ -66,7 +66,7 @@ node scripts/testRegistrationAPI.js
 
 ### 2. Using cURL (Linux/Mac)
 ```bash
-curl -X POST http://localhost:3000/api/users \
+curl -X POST http://localhost:3000/api/user/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "test_user",
@@ -82,7 +82,7 @@ curl -X POST http://localhost:3000/api/users \
 
 ### 4. Using Postman/Insomnia
 - Method: POST
-- URL: `http://localhost:3000/api/users`
+- URL: `http://localhost:3000/api/user/register`
 - Headers: `Content-Type: application/json`
 - Body (JSON):
 ```json

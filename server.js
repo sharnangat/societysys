@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { connectDB, sequelize } = require('./config/db');
 const userRoutes = require('./routes/userRoutes');
+const companyConfigRoutes = require('./routes/companyConfigRoutes');
 const logger = require('./config/logger');
 
 const app = express();
@@ -33,6 +34,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api', userRoutes);
+app.use('/api', companyConfigRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

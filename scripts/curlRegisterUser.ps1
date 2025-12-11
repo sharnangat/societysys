@@ -18,11 +18,11 @@ $headers = @{
 }
 
 Write-Host "Registering user via API..." -ForegroundColor Cyan
-Write-Host "URL: http://localhost:3000/api/users" -ForegroundColor Yellow
+Write-Host "URL: http://localhost:3000/api/user/register" -ForegroundColor Yellow
 Write-Host ""
 
 try {
-    $response = Invoke-RestMethod -Uri "http://localhost:3000/api/users" `
+    $response = Invoke-RestMethod -Uri "http://localhost:3000/api/user/register" `
         -Method Post `
         -Body $body `
         -Headers $headers `

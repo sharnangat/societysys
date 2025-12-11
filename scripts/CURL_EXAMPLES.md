@@ -3,7 +3,7 @@
 ## Basic Registration (cURL - Linux/Mac)
 
 ```bash
-curl -X POST http://localhost:3000/api/users \
+curl -X POST http://localhost:3000/api/user/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "john_doe",
@@ -18,7 +18,7 @@ curl -X POST http://localhost:3000/api/users \
 ## Minimal Registration (Only Required Fields)
 
 ```bash
-curl -X POST http://localhost:3000/api/users \
+curl -X POST http://localhost:3000/api/user/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "testuser",
@@ -30,7 +30,7 @@ curl -X POST http://localhost:3000/api/users \
 ## Full Registration (All Fields)
 
 ```bash
-curl -X POST http://localhost:3000/api/users \
+curl -X POST http://localhost:3000/api/user/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "jane_smith",
@@ -58,7 +58,7 @@ $body = @{
     phone = "1234567890"
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri "http://localhost:3000/api/users" `
+Invoke-RestMethod -Uri "http://localhost:3000/api/user/register" `
     -Method Post `
     -Body $body `
     -ContentType "application/json"
@@ -67,7 +67,7 @@ Invoke-RestMethod -Uri "http://localhost:3000/api/users" `
 ## With Pretty Print (jq on Linux/Mac)
 
 ```bash
-curl -X POST http://localhost:3000/api/users \
+curl -X POST http://localhost:3000/api/user/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "john_doe",
@@ -79,7 +79,7 @@ curl -X POST http://localhost:3000/api/users \
 ## Save Response to File
 
 ```bash
-curl -X POST http://localhost:3000/api/users \
+curl -X POST http://localhost:3000/api/user/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "john_doe",
@@ -91,7 +91,7 @@ curl -X POST http://localhost:3000/api/users \
 ## With Verbose Output
 
 ```bash
-curl -v -X POST http://localhost:3000/api/users \
+curl -v -X POST http://localhost:3000/api/user/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "john_doe",

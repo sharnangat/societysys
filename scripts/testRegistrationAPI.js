@@ -2,6 +2,7 @@ require('dotenv').config();
 const http = require('http');
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000/api';
+const REGISTER_ENDPOINT = '/user/register';
 
 // Sample registration request data
 const sampleUser = {
@@ -19,7 +20,7 @@ const sampleUser = {
 function registerUser(userData) {
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify(userData);
-    const url = new URL(`${API_BASE_URL}/users`);
+    const url = new URL(`${API_BASE_URL}${REGISTER_ENDPOINT}`);
     
     const options = {
       hostname: url.hostname,
@@ -33,7 +34,7 @@ function registerUser(userData) {
     };
 
     console.log('\n=== Registration API Request ===');
-    console.log(`URL: ${API_BASE_URL}/users`);
+    console.log(`URL: ${API_BASE_URL}${REGISTER_ENDPOINT}`);
     console.log(`Method: POST`);
     console.log('Request Body:');
     console.log(JSON.stringify(userData, null, 2));
